@@ -1,0 +1,69 @@
+bl_info = {
+    "name": "Print Deformed Vertex World Coordinates (Y and Z Swapped, Rounded)",
+    "blender": (2, 93, 0),
+    "category": "Object",
+}
+
+import bpy
+
+class OBJECT_OT_print_deformed_vertex_world_coords_swapped_rounded(bpy.types.Operator):
+    bl_idname = "object.print_deformed_vertex_world_coords_swapped_rounded"
+    bl_label = "Print Deformed Vertex World Coordinates (Y and Z Swapped, Rounded)"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    def execute(self, context):
+        obj = context.object
+        
+        # Check if the selected object is a mesh and has an armature modifier
+        if obj and obj.type == 'MESH':
+            # Apply all modifiers (including armature) to get deformed vertex positions
+            depsgraph = context.evaluated_depsgraph_get()
+            obj_eval = obj.evaluated_get(depsgraph)
+            mesh_eval = obj_eval.to_mesh()
+            
+            # Matrix for converting local to world coordinates
+            obj_matrix = obj.matrix_world
+            
+            # Store the coordinates in a list
+            coords_list = []
+            
+            # Iterate over vertices and store world coordinates with Y and Z swapped, rounded to 5 digits
+            for vert in mesh_eval.vertices:
+                world_coord = obj_matrix @ vert.co
+                # Swap Y and Z coordinates, and round to 5 decimal places
+                swapped_coord = (
+                    round(world_coord.x, 5), 
+                    round(world_coord.z, 5), 
+                    round(world_coord.y, 5)
+                )
+                coords_list.append(swapped_coord)
+            
+            # Print the array of swapped and rounded coordinates at once
+            print("Deformed Vertex World Coordinates (Y and Z Swapped, Rounded to 5 Decimal Places):")
+            
+            for v in coords_list:
+                print("vec3",v,",")
+            
+            
+            # Release the evaluated mesh
+            obj_eval.to_mesh_clear()
+            
+            self.report({'INFO'}, "Deformed vertex world coordinates with swapped Y and Z, rounded to 5 decimal places, printed in console.")
+        else:
+            self.report({'WARNING'}, "Selected object is not a mesh.")
+        
+        return {'FINISHED'}
+
+def menu_func(self, context):
+    self.layout.operator(OBJECT_OT_print_deformed_vertex_world_coords_swapped_rounded.bl_idname)
+
+def register():
+    bpy.utils.register_class(OBJECT_OT_print_deformed_vertex_world_coords_swapped_rounded)
+    bpy.types.VIEW3D_MT_object.append(menu_func)
+
+def unregister():
+    bpy.utils.unregister_class(OBJECT_OT_print_deformed_vertex_world_coords_swapped_rounded)
+    bpy.types.VIEW3D_MT_object.remove(menu_func)
+
+if __name__ == "__main__":
+    register()
